@@ -64,7 +64,7 @@ fechaFinal <- as.Date("2019-01-01")
 # Pronósticos facebook ----------------------------------------------------
 
 ###FANS TOTALES
-totalesFansDiario <- xts(unique(fb[,2]), as.Date(unique(fb[,1]))) 
+totalesFansDiario <- xts(fb[,2], as.Date(fb[,1])) 
 
 secuenciaTotales <- seq_along(totalesFansDiario)
 
@@ -80,8 +80,11 @@ predLineal <- predict(modeloLineal,
 predLineal <- xts(predLineal, seq(ymd(20160101), by="day", 
                                   length.out = length(predLineal)))
 
-cbind(totalesFansDiario, predLineal) %>%  
-  dygraph()
+fansLineal <- cbind(totalesFansDiario, predLineal) 
+
+ggFansLineal <- data.frame(fecha = time(fansLineal), 
+                        data.frame(fansLineal))
+
 
 
 ############ ENGANCHE #####################
