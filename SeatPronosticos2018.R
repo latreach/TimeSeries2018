@@ -32,6 +32,8 @@ ins <- read.csv("datos/instagram/datosHomologadosIN.csv")
 
 yt <- read.csv("datos/youtube/datosHomologadosYT.csv")
 
+sitioWeb <- read.csv("datos/sitio_web/seatWebPage.csv",
+                     header = T)
 
 ######## ENGANCHE
 interaccionesEnganche <- c(443306,410142, 364830,359057,491580,466709,453217,
@@ -63,14 +65,14 @@ fechaFinal <- as.Date("2019-01-01")
 
 # Pronósticos facebook ----------------------------------------------------
 
-###FANS TOTALES
+### FANS TOTALES ###########
 totalesFansDiario <- xts(fb[,2], as.Date(fb[,1])) 
 
 secuenciaTotales <- seq_along(totalesFansDiario)
 
 modeloLineal <- lm(coredata(totalesFansDiario) ~ secuenciaTotales) 
 diferenciaLineal <- difftime(fechaFinal, time(last(totalesFansDiario)))
-diferenciaLineal <- ceiling(as.numeric(diferenciaLineal))
+diferenciaLineal <- ceiling(as.numeric(diferenciaLineal)) +2 
 
 Time_predLineal <- 1:(length(totalesFansDiario) + (diferenciaLineal))
 
@@ -81,11 +83,142 @@ predLineal <- xts(predLineal, seq(ymd(20160101), by="day",
                                   length.out = length(predLineal)))
 
 fansLineal <- cbind(totalesFansDiario, predLineal) 
-
+names(fansLineal)<- c("Observado", "Pronostico")
 ggFansLineal <- data.frame(fecha = time(fansLineal), 
                         data.frame(fansLineal))
 
+observadoEneroL <- totalesFansDiario["2017-01-01"] %>% 
+  as.numeric %>% 
+  round(digits=2)
 
+observadoAgosL <- totalesFansDiario["2017-08-01"] %>% 
+  as.numeric %>% 
+  round(digits=2)
+
+crecimiento1LObs <- (observadoAgosL -observadoEneroL)/observadoEneroL*100
+
+eneroL <- predLineal["2018-01-01"]  %>% 
+  as.numeric %>% 
+  round(digits=2)
+
+crecimiento1L <- (eneroL - observadoEneroL)/observadoEneroL*100
+
+junioL <- predLineal["2018-06-01"] %>% 
+  as.numeric %>% 
+  round(digits=2)
+
+crecimiento2L <- (junioL -observadoEneroL)/observadoEneroL*100
+
+diciembreL <- predLineal["2019-01-01"] %>% 
+  as.numeric %>% 
+  round(digits=2)
+
+crecimiento3L <- (diciembreL -observadoEneroL)/observadoEneroL*100
+
+
+
+ggFansLineal %>% 
+  gather(tipo, valor, -fecha) %>% 
+  ggplot(aes(x = fecha, y=valor, color=tipo))+
+  geom_line()+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle=45, hjust=1),
+        legend.position = "top")+
+  scale_color_manual(values = c("darkred", "steelblue"),
+                     name="", labels=c("Observado", "Estimación"))+
+  scale_x_date(date_breaks = "2 months")+
+  xlab("")+
+  ylab("Fans totales")+
+  geom_vline(xintercept = as.numeric(as.Date("2017-01-01")),
+             linetype=4, color="darkred")+
+  geom_vline(xintercept = as.numeric(as.Date("2017-08-01")),
+             linetype=4, color="darkred")+
+  geom_vline(xintercept = as.numeric(as.Date("2018-01-01")),
+             linetype=4, color="steelblue")+
+  geom_vline(xintercept = as.numeric(as.Date("2018-06-01")),
+             linetype=4, color="steelblue")+
+  geom_vline(xintercept = as.numeric(as.Date("2019-01-01")),
+             linetype=4, color="steelblue")+
+  geom_text(aes(x = as.Date('2016-10-01'), y= 1.72e6, 
+                label= paste('Observado', "2017-01-01",
+                             "\n",
+                             format(observadoEneroL, big.mark = ","), 
+                             sep=" ")),
+            color="darkred")+
+  geom_text(aes(x = as.Date('2017-05-01'), y= 1.75e6, 
+                label= paste('Observado',  "2017-08-01",
+                             "\n",
+                             format(observadoAgosL, big.mark = ","), 
+                             sep=" ")), 
+            # angle=90,
+            color="darkred")+
+  geom_text(aes(x = as.Date('2017-05-01'), y= 1.70e6, 
+                label= paste( round(crecimiento1LObs, 2), "%", 
+                              "crecimiento", 
+                              "\n",
+                              format((observadoAgosL -observadoEneroL),
+                                     big.mark = ","), 
+                              "nuevos fans","*",
+                             sep=" ")), 
+            # angle=90,
+            color="darkred")+
+  geom_text(aes(x = as.Date('2017-10-15'), y= 1.66e6, 
+                label= paste('Pronóstico', "\n", "2018-01-01",
+                             "\n",
+                             format(eneroL, big.mark = ","), 
+                             sep=" ")), 
+            color="steelblue")+
+  geom_text(aes(x = as.Date('2017-10-15'), y= 1.63e6, 
+                label= paste( round(crecimiento1L, 2), "%", 
+                              "crecimiento", 
+                              "\n",
+                              format(floor(eneroL -observadoEneroL),
+                                     big.mark = ","), "\n", 
+                              "nuevos fans","*",
+                              sep=" ")), 
+            # angle=90,
+            color="steelblue")+
+  geom_text(aes(x = as.Date('2018-04-01'), y= 1.70e6, 
+                label= paste('Pronóstico', "\n", "2018-06-01",
+                             "\n",
+                             format(junioL, big.mark = ","), 
+                             sep=" ")), 
+            color="steelblue")+
+  geom_text(aes(x = as.Date('2018-03-25'), y= 1.66e6, 
+                label= paste( round(crecimiento2L, 2), "%", 
+                              "crecimiento", 
+                              "\n",
+                              format(floor(junioL - observadoEneroL),
+                                     big.mark = ","), "\n", 
+                              "nuevos fans","*",
+                              sep=" ")), 
+            # angle=90,
+            color="steelblue") +
+  geom_text(aes(x = as.Date('2018-09-01'), y= 1.73e6, 
+                label= paste('Pronóstico', "\n", "2019-01-01",
+                             "\n",
+                             format(diciembreL, big.mark = ","), 
+                             sep=" ")), 
+            color="steelblue")+
+  geom_text(aes(x = as.Date('2018-09-01'), y= 1.70e6, 
+                label= paste( round(crecimiento3L, 2), "%", 
+                              "crecimiento", 
+                              "\n",
+                              format(floor(diciembreL - observadoEneroL),
+                                     big.mark = ","), "\n", 
+                              "nuevos fans","*",
+                              sep=" ")), 
+            # angle=90,
+            color="steelblue") +
+  geom_text(aes(x = as.Date('2016-05-01'), y= 1.79e6,
+                label= paste("*", 'Cifras con respecto al 2017-01-01',
+                             sep=" ")),
+            color="black", size=4)
+
+
+
+
+  
 
 ############ ENGANCHE #####################
 fechas = seq(ymd('2013-01-01'),ymd('2017-08-01'), by = 'months')
@@ -118,6 +251,10 @@ names(grafoEn) <- c("Engagement", "Estimación (No lineal)")
 
 ggGrafoEn <- data.frame(fecha = time(grafoEn), 
                        data.frame(grafoEn))
+
+observadoEnero <- engage["2017-01-01"] %>% 
+  as.numeric %>% 
+  round(digits=2)
 
 observadoAgos <- engage["2017-08-01"] %>% 
   as.numeric %>% 
@@ -214,23 +351,304 @@ ggGrafoEn %>%
                              diciembre, "%",  sep="\t")), angle=90) 
 
 
+############ ALCANCE #####################
+alcanceOrg <- fb %>% 
+  data.table() %>% 
+  .[, alcancePorcentaje := Alcance.organico.Diario/Total.de.Me.gusta] %>% 
+  .[, alcancePorcentaje := alcancePorcentaje*100] 
 
-
-
-
+alcancets <- xts(alcanceOrg$alcancePorcentaje, as.Date(alcanceOrg$Fecha)) 
 
 # Pronósticos twitter -----------------------------------------------------
 
+######### SEGUIDORES ##
+
+seguidoresTWts <- xts(tw$Seguidores, as.Date(tw$Fecha))
+seguidoresTWts <- seguidoresTWts['2015-12-01/'] 
+fechasTW <- seq(ymd('2015-12-01'),ymd('2017-09-24'), by = 'days')
+Tiempotw <- seq_along(seguidoresTWts)
+
+diferenciaTWSeguidor <- difftime(fechaFinal, last(fechasTW)) %>% 
+  as.numeric
+
+diferenciaTWSeguidor <- floor(diferenciaTWSeguidor)
 
 
+TIME_Prtw <- 1:(length(Tiempotw) + diferenciaTWSeguidor)
+
+
+modeloLogistico <- nls(coredata(seguidoresTWts) ~ K*P0*exp(R*Tiempotw)/(K+P0 *(exp(R*Tiempotw)-1)),
+                   start = list(P0 = min(coredata(seguidoresTWts), na.rm = T), 
+                                K  = max(coredata(seguidoresTWts), na.rm = T), 
+                                R = 0.01
+                   )
+) 
+
+predTWSeguidor <- predict(modeloLogistico, 
+                        newdata = list(Tiempotw = TIME_Prtw))
+
+predTWSeguidor <- xts(predTWSeguidor, seq(ymd(20151201), by="day", 
+                                  length.out = length(predTWSeguidor)))
+
+
+### Falló este modelo
+### Modelo lineal
+seguidoresTWts <- seguidoresTWts['2016-01-01/'] 
+fechasTW <- seq(ymd('2016-01-01'),ymd('2017-09-24'), by = 'days')
+Tiempotw <- seq_along(seguidoresTWts)
+
+diferenciaTWSeguidor <- difftime(fechaFinal, last(fechasTW)) %>% 
+  as.numeric
+
+diferenciaTWSeguidor <- floor(diferenciaTWSeguidor)
+
+TIME_Prtw <- 1:(length(Tiempotw) + diferenciaTWSeguidor)
+
+modeloLinealTW <- lm(coredata(seguidoresTWts)~Tiempotw) 
+
+predLinealTW <- predict(modeloLinealTW, 
+                      newdata = list(Tiempotw = TIME_Prtw))
+
+predLinealTW <- xts(predLinealTW, seq(ymd(20160101), by="day", 
+                                  length.out = length(predLinealTW)))
+
+seguidoresTWLineal <- cbind(seguidoresTWts, predLinealTW) 
+
+names(seguidoresTWLineal)<- c("Observado", "Pronostico")
+
+ggseguidorTw <- data.frame(fecha = time(seguidoresTWLineal), 
+                           data.frame(seguidoresTWLineal))
+
+
+observadoEneroTWL <- seguidoresTWts["2017-01-01"] %>% 
+  as.numeric 
+
+observadoAgostoTWL <- seguidoresTWts["2017-08-01"] %>% 
+  as.numeric
+
+crecimiento1LTWObs <- (observadoAgostoTWL -observadoEneroTWL)/observadoEneroTWL*100
+
+eneroLtw <- predLinealTW["2018-01-01"]  %>% 
+  as.numeric %>% 
+  floor
+
+crecimiento1TW <- (eneroLtw - observadoEneroTWL)/observadoEneroTWL*100
+
+junioLtw <- predLinealTW["2018-06-01"] %>% 
+  as.numeric %>% 
+  floor
+
+crecimiento2TW <- (junioLtw -observadoEneroTWL)/observadoEneroTWL*100
+
+diciembreLtw <- predLinealTW["2019-01-01"] %>% 
+  as.numeric %>% 
+  floor
+
+crecimiento3TW <- (diciembreLtw -observadoEneroTWL)/observadoEneroTWL*100
+
+
+
+ggseguidorTw %>% 
+  gather(tipo, valor, -fecha) %>% 
+  ggplot(aes(x = fecha, y=valor, color=tipo))+
+  geom_line()+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle=45, hjust=1),
+        legend.position = "top")+
+  scale_color_manual(values = c("darkred", "steelblue"),
+                     name="", labels=c("Observado", "Estimación"))+
+  scale_x_date(date_breaks = "2 months")+
+  xlab("")+
+  ylab("Seguidores TW")+
+  geom_vline(xintercept = as.numeric(as.Date("2017-01-01")),
+             linetype=4, color="darkred")+
+  geom_vline(xintercept = as.numeric(as.Date("2017-08-01")),
+             linetype=4, color="darkred")+
+  geom_vline(xintercept = as.numeric(as.Date("2018-01-01")),
+             linetype=4, color="steelblue")+
+  geom_vline(xintercept = as.numeric(as.Date("2018-06-01")),
+             linetype=4, color="steelblue")+
+  geom_vline(xintercept = as.numeric(as.Date("2019-01-01")),
+             linetype=4, color="steelblue")+
+  geom_text(aes(x = as.Date('2016-10-01'), y= 3.2e5, 
+                label= paste('Observado', "2017-01-01",
+                             "\n",
+                             format(observadoEneroTWL, big.mark = ","), 
+                             sep=" ")),
+            color="darkred")+
+  geom_text(aes(x = as.Date('2017-05-01'), y= 3.2e5, 
+                label= paste('Observado',  "2017-08-01",
+                             "\n",
+                             format(observadoAgostoTWL, big.mark = ","), 
+                             sep=" ")), 
+            # angle=90,
+            color="darkred")+
+  geom_text(aes(x = as.Date('2017-05-01'), y= 3.1e5, 
+                label= paste( round(crecimiento1LTWObs, 2), "%", 
+                              "crecimiento", 
+                              "\n",
+                              format((observadoAgostoTWL -observadoEneroTWL),
+                                     big.mark = ","), 
+                              "nuevos seguidores","*",
+                              sep=" ")), 
+            # angle=90,
+            color="darkred")+
+  geom_text(aes(x = as.Date('2017-10-15'), y= 3.05e5, 
+                label= paste('Pronóstico', "\n", "2018-01-01",
+                             "\n",
+                             format(eneroLtw, big.mark = ","), 
+                             sep=" ")), 
+            color="steelblue")+
+  geom_text(aes(x = as.Date('2017-10-15'), y= 2.95e5, 
+                label= paste( round(crecimiento1L, 2), "%", 
+                              "crecimiento", 
+                              "\n",
+                              format(floor(eneroLtw -observadoEneroTWL),
+                                     big.mark = ","), "\n", 
+                              "nuevos seguidores","*",
+                              sep=" ")), 
+            # angle=90,
+            color="steelblue")+
+  geom_text(aes(x = as.Date('2018-04-01'), y= 3.1e5, 
+                label= paste('Pronóstico', "\n", "2018-06-01",
+                             "\n",
+                             format(junioLtw, big.mark = ","), 
+                             sep=" ")), 
+            color="steelblue")+
+  geom_text(aes(x = as.Date('2018-03-25'), y= 3e5, 
+                label= paste( round(crecimiento2L, 2), "%", 
+                              "crecimiento", 
+                              "\n",
+                              format(floor(junioLtw - observadoEneroTWL),
+                                     big.mark = ","), "\n", 
+                              "nuevos seguidores","*",
+                              sep=" ")), 
+            # angle=90,
+            color="steelblue") +
+  geom_text(aes(x = as.Date('2018-09-01'), y= 3.2e5, 
+                label= paste('Pronóstico', "\n", "2019-01-01",
+                             "\n",
+                             format(diciembreLtw, big.mark = ","), 
+                             sep=" ")), 
+            color="steelblue")+
+  geom_text(aes(x = as.Date('2018-09-01'), y= 3.1e5, 
+                label= paste( round(crecimiento3L, 2), "%", 
+                              "crecimiento", 
+                              "\n",
+                              format(floor(diciembreLtw - observadoEneroTWL),
+                                     big.mark = ","), "\n", 
+                              "nuevos seguidores","*",
+                              sep=" ")), 
+            # angle=90,
+            color="steelblue") +
+  geom_text(aes(x = as.Date('2016-05-01'), y= 3.3e5,
+                label= paste("*", 'Cifras con respecto al 2017-01-01',
+                             sep=" ")),
+            color="black", size=4)
+
+
+
+gustaTWts <- xts(tw$MeGusta, as.Date(tw$Fecha)) 
+RTTWts <- xts(tw$Retweets, as.Date(tw$Fecha))
+
+
+
+
+
+
+
+# Pronósticos Instagram  -----------------------------------------------------
+seguidoresIns <- xts(ins$Seguidores, as.Date(ins$Fecha)) 
+seguidoresIns <- seguidoresIns['2015-01-01/']
+
+fechasIns <- seq(ymd('2015-01-01'),ymd('2017-09-24'), by = 'days')
+TiempoIns <- seq_along(seguidoresIns)
+
+diferenciaInsSeguidor <- difftime(fechaFinal, last(fechasIns)) %>% 
+  as.numeric
+
+diferenciaInsSeguidor <- floor(diferenciaInsSeguidor)
+
+
+TIME_InsSeg <- 1:(length(TiempoIns) + diferenciaInsSeguidor)
+
+
+modeloLogisticoIns <- nls(coredata(seguidoresIns) ~ K*P0*exp(R*TiempoIns)/(K+P0 *(exp(R*TiempoIns)-1)),
+                       start = list(P0 = min(coredata(seguidoresIns), 
+                                             na.rm = T), 
+                                    # K  = max(coredata(seguidoresIns),
+                                    #          na.rm = T), 
+                                    K  = 5e4, 
+                                    R = 0.1
+                       )
+) 
+
+predInsSeg <- predict(modeloLogisticoIns, 
+                          newdata = list(TiempoIns = TIME_InsSeg))
+
+predInsSeg <- xts(predInsSeg, seq(ymd(20150101), by="day", 
+                                          length.out = length(predInsSeg)))
+
+
+t1 <- 5000
+modeloInstagramIniciales <- lm(car::logit(seguidoresIns/1000)~TiempoIns)
+t2<- modeloInstagramIniciales$coefficients[1] %>%  as.numeric
+t3<- modeloInstagramIniciales$coefficients[2] %>%  as.numeric
+
+nlmIns <- nls(coredata(seguidoresIns)~theta1/(1+exp(-(theta2+theta3*TiempoIns))),
+              start = list(
+                theta1 = t1,
+                theta2 = t2,
+                theta3 = t3
+              ),
+              trace=T
+) 
+
+predInst <- predict(nlmIns, 
+                        newdata = list(TiempoIns = TIME_InsSeg))
+
+plot(seguidoresIns) %>% plot
+
+xts(ins$Totales, as.Date(ins$Fecha)) %>% na.omit %>%  plot
 
 # Pronósticos YouTube -----------------------------------------------------
+crecimientoYT <- Reduce(yt$Subscriptores, f= sum, accumulate = T)
+xts(crecimientoYT, as.Date(yt$Fecha))  %>%  plot
+xts(crecimientoYT, as.Date(yt$Fecha))["2016-01-01/"]  %>%  plot
+xts(yt$Vistas, as.Date(yt$Fecha))  %>%  plot
 
 
 
 
 # Pronósticos sitio web ---------------------------------------------------
+sitioWeb[sitioWeb==0] <-NA
 
+
+######### VISITAS ##
+visitasTs <- xts(sitioWeb$Visitas, as.Date(sitioWeb$Date))['2015-07-01/'] %>% 
+  na.omit 
+
+configuraTs <- xts(sitioWeb$CarConfiguration, as.Date(sitioWeb$Date))['2015-07-01/'] %>% 
+  na.omit()
+
+
+
+returnVisitsTs <- xts(sitioWeb$ReturnVisits, as.Date(sitioWeb$Date))['2015-07-01/'] %>% 
+  na.omit()
+
+timerateTs <- xts(sitioWeb$TimeRate, as.Date(sitioWeb$Date))['2015-07-01/'] %>% 
+  na.omit()
+
+#### Impronosticables
+
+testTs <- xts(sitioWeb$TestDrive, as.Date(sitioWeb$Date))['2015-07-01/'] %>% 
+  na.omit()
+
+dealerTs <- xts(sitioWeb$DealerSearch, as.Date(sitioWeb$Date))['2015-07-01/'] %>% 
+  na.omit()
+
+
+testTs %>%  dygraph()
 
 
 

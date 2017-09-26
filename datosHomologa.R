@@ -4,12 +4,11 @@
 #                                     ( >)"
 #                                      /|
 ####################################
-
-
 library(magrittr)
-c("dplyr","tidyr","lubridate","tseries", "astsa","forecast","ggplot2", 
-  "lattice", "dygraphs","XLConnect", "palettetown", "xts", "Rfacebook",
-  "twitteR") %>%  
+c("data.table", "dplyr","tidyr","lubridate","tseries", 
+  "astsa","forecast","ggplot2", "lattice", "dygraphs",
+  "XLConnect", "palettetown", "xts", "Rfacebook",
+  "twitteR", "readxl") %>%  
   sapply(require, character.only=T)
 
 
@@ -17,8 +16,6 @@ setwd("~/local/TimeSeries18/")
 
 
 # Facebook ----------------------------------------------------------------
-
-
 datos1 <- read.csv("datos/facebook/2016.csv", header = T)
 
 datos1 <- datos1 %>% 
@@ -46,7 +43,7 @@ datos2 <- lapply(archivos, function(hoja){
   return(Y)
 }) %>% do.call("rbind", .)
 
-names(datos1)<- names(datos2)
+names(datos1) <- names(datos2)
 
 datosHomologaFB <- rbind(datos1, datos2) %>% 
   unique
@@ -56,12 +53,20 @@ maxAlcance <- datosHomologaFB %>%
   group_by(Fecha) %>% 
   summarise(alcanceMax = max(Alcance.organico.Diario))
 
+maxTotal <- datosHomologaFB %>% 
+  group_by(Fecha) %>% 
+  summarise(totalMax = max(Total.de.Me.gusta))
+
 
 datosHomologaFB <- datosHomologaFB %>% 
   left_join(maxAlcance, by="Fecha") %>% 
   filter( Alcance.organico.Diario == alcanceMax) %>% 
   select(- alcanceMax)
 
+datosHomologaFB <- datosHomologaFB %>% 
+  left_join(maxTotal, by="Fecha") %>% 
+  filter( Total.de.Me.gusta == totalMax) %>% 
+  select(-totalMax)
 
 datosHomologaFB %>% 
   write.csv("datos/facebook/datosHomologadosFB.csv",
@@ -75,14 +80,14 @@ datos1 <- read_excel("datos/twitter/TW - Engagement - SEAT México - 2017-09-25.
   data.frame()
 
 datos2 <- read_excel("datos/twitter/TW - Followers - SEAT México - 2017-09-25.xlsx",
-                     sheet = 3, skip = 1) %>% 
+                     sheet = 2, skip = 1) %>% 
   data.frame()
 
 datos1 <- datos1 %>% 
   select(Date, Likes, Replies, Retweets, Total.Interactions)
 
 datos2 <- datos2 %>% 
-  select(Date, Growth.of.Total.Followers)
+  select(Date, Followers)
 
 datosHomologaTW <- datos2 %>% 
   left_join(datos1, by="Date")
@@ -101,14 +106,14 @@ datos1 <- read_excel("datos/instagram/IG - Engagement - SEAT México - 2017-09-2
   data.frame()
 
 datos2 <- read_excel("datos/instagram/IG - Followers - SEAT México - 2017-09-25.xlsx",
-                     sheet = 3, skip = 1) %>% 
+                     sheet = 2, skip = 1) %>% 
   data.frame()
 
 datos1 <- datos1 %>% 
   select(Date, Likes, Comments,  Total.Interactions)
 
 datos2 <- datos2 %>% 
-  select(Date, Growth.of.Total.Followers)
+  select(Date, Followers)
 
 datosHomologaIN <- datos2 %>% 
   left_join(datos1, by="Date")
