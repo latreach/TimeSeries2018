@@ -1,3 +1,6 @@
 /datos
-*.Rhistory
+/imagenes
+/logo
+/pronosticos_files
+.Rhistory
 

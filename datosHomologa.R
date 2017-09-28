@@ -83,17 +83,27 @@ datos2 <- read_excel("datos/twitter/TW - Followers - SEAT México - 2017-09-25.x
                      sheet = 2, skip = 1) %>% 
   data.frame()
 
+datos3 <- read_excel("datos/twitter/TW - Engagement - SEAT México - 2017-09-25.xlsx",
+                     sheet = 4, skip = 1) %>% 
+  data.frame()
+
 datos1 <- datos1 %>% 
   select(Date, Likes, Replies, Retweets, Total.Interactions)
 
 datos2 <- datos2 %>% 
   select(Date, Followers)
 
+datos3 <- datos3 %>% 
+  select(Date, Mentions)
+
 datosHomologaTW <- datos2 %>% 
   left_join(datos1, by="Date")
 
+datosHomologaTW <- datosHomologaTW %>% 
+  left_join(datos3, by="Date")
+
 names(datosHomologaTW)<- c("Fecha", "Seguidores", "MeGusta", "Respuestas",
-                           "Retweets", "Totales")
+                           "Retweets", "Totales", "Menciones")
 
 datosHomologaTW %>% 
   write.csv("datos/twitter/datosHomologadosTW.csv",
