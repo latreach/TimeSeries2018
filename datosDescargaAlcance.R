@@ -28,7 +28,7 @@ setwd("~/local/TimeSeries18/")
 # Funciones ---------------------------------------------------------------
 "%!in%" <- function(x,y)!("%in%"(x,y))
 
-seatFB <- getPage(idFB_seat, n = 1e5, since="2016-01-01", until= Sys.Date(),
+seatFB <- getPage(idFB_seat, n = 1e5, since="2015-01-01", until= Sys.Date(),
                     feed=F, reactions=F, token = fb_oauth)
 
 seatFB %>% 
@@ -36,18 +36,26 @@ seatFB %>%
             row.names=F)
 
 
-token<- "EAACEdEose0cBANgEwLLLzJdAfrZAZC4TVONbJ3cuWMa27edko94kGbqZBsjtyc82uMTZA5JtSYzvoZB9kjCcZASCZBgw8lZB5uXH1Atf4RQsWcMrf5Rbj2eiQbwaVS7Gq0zUzZAszs9fGYbQQjfcwRQ75avJ1dxcoSs3YVkfmQFlEHoVoIuJHcKdpxX3qywoxLOgZD"
+token<- "EAACEdEose0cBALl3YlzZAcxmosVDpG9AxZB8t1c83TjqHEZAHNkc9ZAM9xo9ZAZCcs2mBaixkwoKOg4RY3KN9lT69ACvmZC7Vpg2L6sG7HXdKgyCS9LM8jZCjDVrWagczuZA09Lbv9WRG3dcSYzCkZAXsZCZARnuuJcr4O3zHahWSrbtvXkAwUMHYaTMCku4Ge96YCIZD"
 
 strfb <- "https://graph.facebook.com/v2.10/"
 stringimprReachPost <- "/insights/post_impressions_organic_unique"
 stringReactions <- "/insights/post_reactions_by_type_total"
 strtk <- "?access_token="
 
+conteo <- 0
 impressionsFbPost <- lapply(seatFB$id, function(d){
-  z <- readLines(paste0(strfb, d,  stringimprReachPost, strtk, token ))
+  
+  z <- tryCatch(readLines(paste0(strfb, d,  stringimprReachPost, strtk, token )),
+           error = function(e){NULL})
+  if(is.null(z)){
+    return(NULL)
+  }
   z <- unlist(z) %>% fromJSON
   z <- z %>% unlist %>%  
     unname %>% .[3]
+  conteo <<- conteo + 1
+  print(conteo)
   print(d)
   Y <- data.frame(impressionsPost= as.numeric(z), id= d)
   return(Y)
@@ -57,9 +65,14 @@ impressionsFbPost <- lapply(seatFB$id, function(d){
 impressionsFbPost %>% 
   write.csv("datos/facebook/impressionsFbPost.csv", row.names=F)
 
-
+conteo <- 0
 reaccionesFbPost <- lapply(seatFB$id, function(d){
-  z <- readLines(paste0(strfb, d,  stringReactions, strtk, token ))
+  # z <- readLines(paste0(strfb, d,  stringReactions, strtk, token ))
+  z <- tryCatch(readLines(paste0(strfb, d,  stringReactions, strtk, token )),
+                error = function(e){NULL})
+  if(is.null(z)){
+    return(NULL)
+  }
   z <- unlist(z) %>% fromJSON
   z <- z %>%  .$data
   z <- z %>%  unlist
@@ -67,6 +80,8 @@ reaccionesFbPost <- lapply(seatFB$id, function(d){
   z <- z[!grepl("[A-Za-z]", z)]
   z <- z %>% unname %>% as.numeric %>%  sum
   Y <- data.frame(reacciones= as.numeric(z), id= d)
+  conteo <<- conteo + 1
+  print(conteo)
   print(d)
   return(Y)
 }) %>% 

@@ -386,7 +386,8 @@ arimaAlcance <- alcancets %>%
 
 pronosticoAlcance <- xts(arimaAlcance$mean, 
                          seq.POSIXt(as.POSIXct(last(alcancets)), 
-                                    length.out =  diferenciaAlcance+1, by="day"))
+                                    length.out =  diferenciaAlcance+1, 
+                                    by="day"))
 
 alcanceTS <- cbind(alcancets, pronosticoAlcance) 
 names(alcanceTS)<- c("Observado", "Pronostico")
@@ -468,18 +469,57 @@ impressionsPost <- impressionsPost %>%
   .[, porcentajeImpresiones := porcentajeImpresiones*100] %>% 
   select(Fecha, interaccionesTotal, impressionsPost, porcentajeImpresiones) 
 
-impressionsTS <- xts(log10(impressionsPost$porcentajeImpresiones), 
+impressionsTS1 <- xts(log10(impressionsPost$porcentajeImpresiones), 
                      as.Date(impressionsPost$Fecha))
-impressionsTS1 <- xts(impressionsPost$porcentajeImpresiones, 
+impressionsTS <- xts(impressionsPost$porcentajeImpresiones, 
                      as.Date(impressionsPost$Fecha))
 
-impressionsTS1%>% plot(ylim=c(0.5, 3))
-x11()
-impressionsTS1['2016-10-01/2016-11-01']%>% plot
-impressionsTS['2016-01-01/2016-06-01']%>% plot
+impressionsTS  <- impressionsTS['/2017-08-01'] 
+diffimpresiones <- difftime(fechaFinal2, time(last(impressionsTS)))
+diffimpresiones <- as.numeric(diffimpresiones)/30
+diffimpresiones <- floor(diffimpresiones)
+
+arimaImpressions <- impressionsTS %>% 
+  ts %>% 
+  coredata() %>% 
+  auto.arima() %>% 
+  forecast(h=diffimpresiones) 
+
+impressionsTS %>% 
+  ts %>% 
+  coredata() %>% 
+  auto.arima() %>% 
+  forecast(h=diffimpresiones) %>% 
+  .$mean %>%  mean
+
+impressionsTS %>% 
+  ts %>% 
+  coredata() %>% 
+  Arima(order = c(1,1,0)) %>% 
+  forecast(h=diffimpresiones) %>% 
+  .$mean %>%  mean
+  
+
+pronosticoImpresiones <- xts(arimaImpressions$mean, 
+                         seq.POSIXt(as.POSIXct(last(impressionsTS)), 
+                                    length.out =  diffimpresiones,
+                                    by="month"))
+
+impressionsTime <- cbind(impressionsTS, pronosticoImpresiones) 
+names(impressionsTime)<- c("Observado", "Pronostico")
+
+ggimpressionsTime <- data.frame(fecha = time(impressionsTime), 
+                                data.frame(impressionsTime))
+
+
+promedioImpressionsO <- mean(impressionsTS["2017-01-01/2017-09-24"], na.rm=T)
+maxImpressionsO <- max(impressionsTS["2017-01-01/2017-09-24"], na.rm=T)
+minImpressionsO<-min(impressionsTS["2017-01-01/2017-09-24"], na.rm=T)
+promedioImpressionsP<-mean(pronosticoImpresiones, na.rm=T)
 
 
 
+  
 # Pronósticos twitter -----------------------------------------------------
 ######### SEGUIDORES ##
 seguidoresTWts <- xts(tw$Seguidores, as.Date(tw$Fecha))
