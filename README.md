@@ -7,6 +7,7 @@ las redes sociales de SEAT, así como los KPI's del sitio web de la marca.
 
 ## Lenguajes utilizados
 R
+Python
 
 ## Análisis estadísticos utilizados
 

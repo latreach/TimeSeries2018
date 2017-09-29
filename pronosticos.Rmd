@@ -7,6 +7,8 @@ output:
   # pdf_document:
   beamer_presentation:
       keep_tex: true
+      theme: CambridgeUS
+      colortheme: "sidebartab"
       includes:
           in_header: header.tex
 ---
@@ -51,6 +53,9 @@ porcentajeLabel <- function(valor){
 fb <- read.csv("datos/facebook/datosHomologadosFB.csv",
                header = T)
 
+impressionsPost <- read.csv("datos/facebook/porcentajeImpressionsPost.csv",
+                    header = T)
+
 tw <- read.csv("datos/twitter/datosHomologadosTW.csv",
                header = T)
 
@@ -59,6 +64,7 @@ ins <- read.csv("datos/instagram/datosHomologadosIN.csv",
 
 yt <- read.csv("datos/youtube/datosHomologadosYT.csv",
                header = T)
+
 
 sitioWeb <- read.csv("datos/sitio_web/seatWebPage.csv",
                      header = T)
@@ -82,6 +88,7 @@ FansTotales <- c(356210, 444359, 524536, 614642,694754, 766517, 809811, 834032,
                 1574437,1574426,1576277, 1551294, 1556634, 1559181,1558787,
                 1560633, 1562967,1599785,1604375,1611016,1615297,1624452,
                 1632920, 1651192, 1662813, 1672601, 1674674, 1681819)
+
 
 
 # Globales ----------------------------------------------------------------
@@ -699,8 +706,9 @@ yt$Crecimiento <- coredata(crecimientoYT)
 
 #Facebook
 
-## Seguidores
-```{r , echo=F, comment="", warning=F, message=FALSE, fig.width=12, fig.height=6, fig.cap="Seguidores"}
+## Seguidores {.allowframebreaks}
+
+```{r , echo=F, comment="", warning=F, message=FALSE, fig.width=12, fig.height=8}
 ggFansLineal %>% 
   gather(tipo, valor, -fecha) %>% 
   ggplot(aes(x = fecha, y=valor, color=tipo))+
@@ -803,7 +811,7 @@ ggFansLineal %>%
 ```
 
 ## Enganche
-```{r , echo=F, comment="", warning=F, message=FALSE, fig.width=8, fig.height=5, fig.cap="Histórico de nuevos fans."}
+```{r , echo=F, comment="", warning=F, message=FALSE, fig.width=8, fig.height=5}
 
 ```
 

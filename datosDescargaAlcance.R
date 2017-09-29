@@ -79,7 +79,7 @@ reaccionesFbPost <- lapply(seatFB$id, function(d){
   z <- z[grepl("[0-9]", z)]
   z <- z[!grepl("[A-Za-z]", z)]
   z <- z %>% unname %>% as.numeric %>%  sum
-  Y <- data.frame(reacciones= as.numeric(z), id= d)
+  Y <- data.frame(reacciones = as.numeric(z), id= d)
   conteo <<- conteo + 1
   print(conteo)
   print(d)
@@ -100,7 +100,8 @@ unionAlcance <- merge(reaccionesFbPost, impressionsFbPost, by="id")
 
 unionAlcance <- unionAlcance %>% 
   left_join(fechasPost, by="id") %>% 
-  filter(impressionsPost!=0)
+  filter(impressionsPost!=0) %>% 
+  filter(reacciones!=0) 
 
 unionAlcance %>% 
     data.table %>% 
@@ -113,8 +114,6 @@ unionAlcance %>%
     data.table %>% 
     .[, porcentajeImpresiones := interaccionesTotal/impressionsPost] %>% 
     .[, porcentajeImpresiones := porcentajeImpresiones*100] %>% 
-    filter(porcentajeImpresiones<90) %>% 
-    summarise(mean(porcentajeImpresiones))
     write.csv("datos/facebook/porcentajeImpressionsPost.csv", row.names=F)
 
 

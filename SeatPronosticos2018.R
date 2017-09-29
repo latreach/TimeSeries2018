@@ -474,48 +474,82 @@ impressionsTS1 <- xts(log10(impressionsPost$porcentajeImpresiones),
 impressionsTS <- xts(impressionsPost$porcentajeImpresiones, 
                      as.Date(impressionsPost$Fecha))
 
-impressionsTS  <- impressionsTS['/2017-08-01'] 
+impressionsTS  <- impressionsTS['2015-09-01/2017-08-01'] 
+impressionsTS %>% plot
+
+
+TiempoIm = seq_along(impressionsTS )
+
+expFct <- function(x, beta1, beta2, beta3){exp(-beta1 * x)/(beta2 + beta3 * x)}
+
+###### Modelo
+nlsIm <- nls(coredata(impressionsTS)~expFct(x = TiempoIm ,beta1, beta2, beta3),
+                start = list(beta1 = 0.1, beta2 = 0.02, beta3 = 0.03))
+
 diffimpresiones <- difftime(fechaFinal2, time(last(impressionsTS)))
 diffimpresiones <- as.numeric(diffimpresiones)/30
 diffimpresiones <- floor(diffimpresiones)
 
-arimaImpressions <- impressionsTS %>% 
-  ts %>% 
-  coredata() %>% 
-  auto.arima() %>% 
-  forecast(h=diffimpresiones) 
 
-impressionsTS %>% 
-  ts %>% 
-  coredata() %>% 
-  auto.arima() %>% 
-  forecast(h=diffimpresiones) %>% 
-  .$mean %>%  mean
+TimePIm <- 1:(length(TiempoIm) + diffimpresiones)
 
-impressionsTS %>% 
-  ts %>% 
-  coredata() %>% 
-  Arima(order = c(1,1,0)) %>% 
-  forecast(h=diffimpresiones) %>% 
-  .$mean %>%  mean
+predIm <- xts(predict(nlsIm, newdata = list(TiempoIm = TimePIm)),
+               seq(ymd(20150901), by = "month", length.out = length(impressionsTS) + 
+                     diffimpresiones))
+
+imprPredict <- cbind(impressionsTS, predIm)
+
+names(imprPredict) <- c("Observado","No lineal")
+
+# arimaImpressions <- impressionsTS %>% 
+#   ts %>% 
+#   coredata() %>% 
+#   auto.arima() %>% 
+#   forecast(h=diffimpresiones) 
+
+
+# pronosticoImpresiones <- xts(arimaImpressions$mean, 
+#                          seq.POSIXt(as.POSIXct(last(impressionsTS)), 
+#                                     length.out =  diffimpresiones,
+#                                     by="month"))
+
+# impressionsTime <- cbind(impressionsTS, pronosticoImpresiones) 
+# names(impressionsTime)<- c("Observado", "Pronostico")
+# impressionsTime %>% dygraph()
+
+ggimprPredict <- data.frame(fecha = time(imprPredict), 
+                                data.frame(imprPredict))
+
+
+imprEne18 <- round(predIm["2018-01-01"], 2)
+imprJun18 <- round(predIm["2018-06-01"], 2)
+
+
+ggimprPredict %>%  
+  gather(tipo, valor, -fecha) %>% 
+  ggplot(aes(x = fecha, y= valor, color= tipo))+
+  geom_line()+
+  geom_point()+
+  theme_classic()+
+  scale_color_manual(values=c("steelblue", "darkred"), name="",
+                     labels= c("Pronóstico", "Observado"))+
+  scale_y_continuous(breaks = seq(0,4,.2), limit=c(1, 4), labels = porcentajeLabel)+
+  scale_x_date(date_breaks = "2 months")+
+  theme(legend.position = "top", axis.text.x =  element_text(angle=45, hjust=1))+
+  xlab("" )+
+  ylab("Porcentaje de:  \n interacciones totales/impresiones orgánicas")+
+  geom_vline(xintercept = as.numeric(as.Date("2018-01-01")),
+             linetype=4, color="steelblue")+
+  geom_vline(xintercept = as.numeric(as.Date("2018-06-01")),
+             linetype=4, color="steelblue")+
+  geom_text(aes(x = as.Date('2017-12-01'), y= 2.5, 
+                label= paste('Pronóstico', '2018-01-01',  
+                             imprEne18, "%",  sep=" ")), angle=90) +
+  geom_text(aes(x = as.Date('2018-05-01'), y= 2.5, 
+                label= paste('Pronóstico', '2018-01-01',  
+                             imprJun18, "%",  sep=" ")), angle=90) 
   
-
-pronosticoImpresiones <- xts(arimaImpressions$mean, 
-                         seq.POSIXt(as.POSIXct(last(impressionsTS)), 
-                                    length.out =  diffimpresiones,
-                                    by="month"))
-
-impressionsTime <- cbind(impressionsTS, pronosticoImpresiones) 
-names(impressionsTime)<- c("Observado", "Pronostico")
-
-ggimpressionsTime <- data.frame(fecha = time(impressionsTime), 
-                                data.frame(impressionsTime))
-
-
-promedioImpressionsO <- mean(impressionsTS["2017-01-01/2017-09-24"], na.rm=T)
-maxImpressionsO <- max(impressionsTS["2017-01-01/2017-09-24"], na.rm=T)
-minImpressionsO<-min(impressionsTS["2017-01-01/2017-09-24"], na.rm=T)
-promedioImpressionsP<-mean(pronosticoImpresiones, na.rm=T)
+  
 
 
 
