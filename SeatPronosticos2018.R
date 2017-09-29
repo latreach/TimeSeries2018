@@ -1540,10 +1540,6 @@ ggtsVisitas %>%
 
 dev.off()
 
-
-
-
-
 ######### CAR CONFIGURATION ##
 configuraTs <- xts(sitioWeb$CarConfiguration, as.Date(sitioWeb$Date)) %>% 
   na.omit()
