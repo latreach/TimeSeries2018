@@ -12,7 +12,6 @@ c("data.table", "dplyr", "tidyr", "lubridate", "tseries", "astsa",
   "xts", "Rfacebook", "twitteR") %>%  
   sapply(require, character.only=T)
 
-# library(prophet)
 
 
 setwd("~/local/TimeSeries18/")
@@ -32,6 +31,9 @@ fb <- read.csv("datos/facebook/datosHomologadosFB.csv",
 
 impressionsPost <- read.csv("datos/facebook/porcentajeImpressionsPost.csv",
                     header = T)
+
+inbox <- read.csv("datos/facebook/mensajesHistoricoInbox.csv", header = T,
+                  stringsAsFactors = F)
 
 tw <- read.csv("datos/twitter/datosHomologadosTW.csv",
                header = T)
@@ -74,8 +76,8 @@ fechaFinal <- as.Date("2019-01-01")
 
 fechaFinal2 <- as.Date("2018-06-01")
 
-
-
+idFB_seat = 113144262054871
+ 
 # Pronósticos facebook ----------------------------------------------------
 
 ### FANS TOTALES ###########
@@ -454,6 +456,7 @@ ggalcanceTS %>%
 dev.off()
 
 ############ IMPRESSIONS  POST #####################
+
 impressionsPost <- impressionsPost %>%
   select(-porcentajeImpresiones) %>% 
   data.table %>% 
@@ -546,14 +549,121 @@ ggimprPredict %>%
                 label= paste('Pronóstico', '2018-01-01',  
                              imprEne18, "%",  sep=" ")), angle=90) +
   geom_text(aes(x = as.Date('2018-05-01'), y= 2.5, 
-                label= paste('Pronóstico', '2018-01-01',  
+                label= paste('Pronóstico', '2018-06-01',  
                              imprJun18, "%",  sep=" ")), angle=90) 
   
   
 
+######### INBOX ###########################
+inboxDiario <- inbox %>% 
+  data.table %>% 
+  .[, Fecha := as.Date(Fecha)] %>% 
+  filter(id_Usuario_Desde != idFB_seat) %>% 
+  group_by(Fecha) %>% 
+  summarise(n = n()) %>% 
+  data.frame
 
 
-  
+inboxMensual <- inbox %>% 
+  data.table %>% 
+  .[, Fecha := as.Date(Fecha)] %>% 
+  .[, Mes := month(Fecha)] %>% 
+  .[, Anio := year(Fecha)] %>% 
+  filter(id_Usuario_Desde != idFB_seat) %>% 
+  group_by(Anio, Mes) %>% 
+  summarise(n = n()) %>%
+  data.table %>% 
+  .[, Fecha := paste0(Anio, "-", Mes, "-", "01")] %>% 
+  .[, Fecha := as.Date(Fecha)] 
+
+inboxts <- xts(inboxDiario$n, as.Date(inboxDiario$Fecha) )
+inboxtsMes <- xts(inboxMensual$n, as.Date(inboxMensual$Fecha) )
+
+inboxts["2016-01-01/2017-08-01"] %>%  plot
+x11()
+inboxts %>%  plot
+inboxtsMes["/2017-08-01"] %>%  plot
+
+######### RESPONSE TIME Y RESPONSE RATE ##############
+AnswersSeat <- inbox %>% 
+  filter(id_Usuario_Desde!=idFB_seat) %>% 
+  select(idConversacion, Fecha, Hora, Mensaje) %>% 
+  data.table() %>% 
+  .[order(idConversacion, Fecha, Hora)] %>%
+  group_by( idConversacion) %>% 
+  # group_by( idConversacion, Fecha, Hora) %>% 
+  filter(row_number()==1) %>% 
+  data.frame 
+
+ResponseSeat <- inbox %>% 
+  filter(id_Usuario_Desde==idFB_seat) %>% 
+  select(idConversacion, Fecha, Hora, Mensaje) %>% 
+  data.table() %>% 
+  .[order(idConversacion, Fecha, Hora)] %>%
+  group_by( idConversacion) %>% 
+  # group_by( idConversacion, Fecha, Hora) %>% 
+  filter(row_number()==1) %>% 
+  data.frame 
+
+AnswersSeat %>% 
+  filter(idConversacion=="t_100002244135489")
+
+test <-AnswersSeat %>% 
+  left_join(ResponseSeat, by="idConversacion") %>% 
+  data.table %>% 
+  .[, FechaPregunta := paste(Fecha.x, Hora.x, sep=" ")] %>%
+  .[, FechaPregunta := gsub("+0000", "", FechaPregunta, fixed=T)] %>% 
+  .[, FechaPregunta := as.POSIXct(FechaPregunta,  format="%Y-%m-%d %H:%M:%S")] %>% 
+  .[, FechaRespuesta := paste(Fecha.y, Hora.y, sep=" ")] %>% 
+  .[, FechaRespuesta := gsub("+0000", "", FechaRespuesta, fixed=T)] %>% 
+  .[, FechaRespuesta := as.POSIXct(FechaRespuesta, format="%Y-%m-%d %H:%M:%S")] %>% 
+  .[, diferencia := difftime(FechaRespuesta, FechaPregunta, units="hours")] %>% 
+  .[, diferencia := as.numeric(diferencia)] %>% 
+  group_by(Fecha.x ) %>% 
+  summarise(tiempoPromedio  = mean(diferencia)) %>%
+  na.omit %>% 
+  data.frame %>% 
+  filter(tiempoPromedio==abs(tiempoPromedio))
+
+
+AnswersSeat %>% 
+  left_join(ResponseSeat, by="idConversacion") %>% 
+  data.table %>% 
+  .[, FechaPregunta := paste(Fecha.x, Hora.x, sep=" ")] %>%
+  .[, FechaPregunta := as.POSIXct(FechaPregunta)] %>% 
+  .[, FechaRespuesta := paste(Fecha.y, Hora.y, sep=" ")] %>% 
+  .[, FechaRespuesta := gsub("+0000", "", FechaRespuesta, fixed=T)] %>% 
+  .[, FechaRespuesta := as.POSIXct(FechaRespuesta, format="%Y-%m-%d %H:%M:%S")] %>% 
+  .[, diferencia := difftime(FechaRespuesta, FechaPregunta, units="hours")] %>% 
+  .[, diferencia := as.numeric(diferencia)] %>% 
+  group_by(Fecha.x ) %>% 
+  summarise(tiempoPromedio  = sum(diferencia)) %>% 
+  filter(Fecha.x> "2015-09-01") %>% 
+  filter(Fecha.x< "2015-11-01")  %>% 
+  na.omit %>%  data.frame()
+
+inbox %>% 
+  filter(idConversacion=="t_100002244135489")
+
+inbox %>% 
+  filter(idConversacion=="t_1166642808")
+
+
+AnswersSeat %>% 
+  left_join(ResponseSeat, by="idConversacion") %>% 
+  data.table %>% 
+  .[, FechaPregunta := paste(Fecha.x, Hora.x, sep=" ")] %>%
+  .[, FechaPregunta := gsub("+0000", "", FechaPregunta, fixed=T)] %>% 
+  .[, FechaPregunta := as.POSIXct(FechaPregunta,  format="%Y-%m-%d %H:%M:%S")] %>% 
+  .[, FechaRespuesta := paste(Fecha.y, Hora.y, sep=" ")] %>% 
+  .[, FechaRespuesta := gsub("+0000", "", FechaRespuesta, fixed=T)] %>% 
+  .[, FechaRespuesta := as.POSIXct(FechaRespuesta, format="%Y-%m-%d %H:%M:%S")] %>% 
+  .[, diferencia := difftime(FechaRespuesta, FechaPregunta, units="hours")] %>% 
+  .[, diferencia := as.numeric(diferencia)] %>% 
+  filter(Fecha.x=="2015-10-21")
+
+xts(test$tiempoPromedio, as.Date(test$Fecha.x))["2017-08-01/"] %>% mean
+
 # Pronósticos twitter -----------------------------------------------------
 ######### SEGUIDORES ##
 seguidoresTWts <- xts(tw$Seguidores, as.Date(tw$Fecha))
