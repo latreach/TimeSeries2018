@@ -16,8 +16,9 @@ c("data.table", "dplyr", "tidyr", "lubridate", "Rfacebook", "ggplot2", "googlesh
 # Realizando la conexión APIS REDES SOCIALES
 
 # Conexión facebook API ---------------------------------------------------
-fb_oauth <- fbOAuth(app_id="1611650985792093", 
-                    app_secret="85db5a49077d074e84b5ce0a19659893", 
+source("Apikeys.R")
+fb_oauth <- fbOAuth(app_id = app_id , 
+                    app_secret=app_secret, 
                     extended_permissions = TRUE)
 save(fb_oauth, file="fb_oauth")
 load("~/fb_oauth")
@@ -36,7 +37,7 @@ seatFB %>%
             row.names=F)
 
 
-token<- "EAACEdEose0cBALl3YlzZAcxmosVDpG9AxZB8t1c83TjqHEZAHNkc9ZAM9xo9ZAZCcs2mBaixkwoKOg4RY3KN9lT69ACvmZC7Vpg2L6sG7HXdKgyCS9LM8jZCjDVrWagczuZA09Lbv9WRG3dcSYzCkZAXsZCZARnuuJcr4O3zHahWSrbtvXkAwUMHYaTMCku4Ge96YCIZD"
+token<- ""
 
 strfb <- "https://graph.facebook.com/v2.10/"
 stringimprReachPost <- "/insights/post_impressions_organic_unique"
