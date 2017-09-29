@@ -6,8 +6,8 @@ El siguiente repositorio aloja los scripts de los pronósticos de
 las redes sociales de SEAT, así como los KPI's del sitio web de la marca.
 
 ## Lenguajes utilizados
-R
-Python
++ R
++ Python
 
 ## Análisis estadísticos utilizados
 
